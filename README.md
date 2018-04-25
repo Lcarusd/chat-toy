@@ -9,3 +9,7 @@ py文件、数据库功能、发邮件
 4、数据分析
 
 数据分析好友，实时动态更新。存入json
+
+chatterbot跑起步骤：
+1、hug -f bot_api.py
+2、python2 wechat_bot.py
