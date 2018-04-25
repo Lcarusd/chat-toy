@@ -18,7 +18,9 @@ from traceback import format_exc
 from requests.exceptions import ConnectionError, ReadTimeout
 import HTMLParser
 
+# new add
 from safesession import SafeSession
+from tools import Tools
 
 UNKONWN = 'unkonwn'
 SUCCESS = '200'
@@ -47,7 +49,7 @@ def show_image(file_path):
         webbrowser.open(os.path.join(os.getcwd(), 'temp', file_path))
 
 
-class WXBot:
+class ChatBotBase:
     """WXBot功能类"""
 
     def __init__(self):
@@ -122,9 +124,6 @@ class WXBot:
     def to_unicode(string, encoding='utf-8'):
         """
         将字符串转换为Unicode
-        :param string: 待转换字符串
-        :param encoding: 字符串解码方式
-        :return: 转换后的Unicode字符串
         """
         if isinstance(string, str):
             return string.decode(encoding)
