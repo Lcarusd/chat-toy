@@ -7,7 +7,6 @@ import hug
 
 deepThought = ChatBot("deepThought")
 deepThought.set_trainer(ChatterBotCorpusTrainer)
-# 使用中文语料库训练它
 deepThought.train("chatterbot.corpus.chinese")
 
 
