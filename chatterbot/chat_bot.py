@@ -15,8 +15,8 @@ class ChatBot(ChatBotBase):
 
 
 def main():
-    bot = ChatBot()  # 实例化ChatBot类
-    bot.DEBUG = True    # 开启DEBUG模式，默认为False
+    bot = ChatBot()
+    bot.DEBUG = True
     bot.conf['qr'] = 'png'
     bot.run()
 

@@ -13,3 +13,13 @@ py文件、数据库功能、发邮件
 chatterbot跑起步骤：
 1、hug -f bot_api.py
 2、python2 wechat_bot.py
+
+模块：
+random
+
+time
+time.time() 返回当前时间的时间戳
+
+logging
+
+request.session

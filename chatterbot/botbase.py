@@ -1183,7 +1183,9 @@ class ChatBotBase:
 
     def run(self):
         try:
+            # 获取uuid
             self.get_uuid()
+            # 将生成的qr图片存在临时路径下
             self.gen_qr_code(os.path.join(self.temp_pwd, 'wxqr.png'))
             print '[INFO] Please use WeChat to scan the QR code .'
 
