@@ -1,25 +1,9 @@
 # WeChatBot
-Multi-application WeChat chat robot based on machine learning.
 
-py文件、数据库功能、发邮件
+## 基于Python3
 
-1、如果发送过来的是图片或视频音频等，保存本地后；将路径存入数据库。
-2、python如何操作数据库
-3、日志记录
-4、数据分析
-
-数据分析好友，实时动态更新。存入json
-
-chatterbot跑起步骤：
-1、hug -f bot_api.py
-2、python2 wechat_bot.py
-
-模块：
-random
-
-time
-time.time() 返回当前时间的时间戳
-
-logging
-
-request.session
+微信好友分析；
+百度智能平台api调用；
+数据库的连接；
+聊天记录分析；
+main文件管理所有程序；
