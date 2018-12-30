@@ -1,4 +1,7 @@
 # -*- coding:utf-8 -*-
+
+import traceback
+
 import requests
 
 
@@ -8,7 +11,7 @@ class SafeSession(requests.Session):
             try:
                 return super(SafeSession, self).request(method, url, params, data, headers, cookies, files, auth, timeout, allow_redirects, proxies, hooks, stream, verify, cert, json)
             except Exception as e:
-                print e.message, traceback.format_exc()
+                print (e.message, traceback.format_exc())
                 continue
 
         # 重试3次以后再加一次，抛出异常
