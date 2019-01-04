@@ -2,9 +2,9 @@
 
 import re
 
-from connect_db import SQLStore
+# from mysql_orm import SQLStore
 
-s = SQLStore()
+# s = SQLStore()
 
 # 提取聊天时间子串
 def get_record_time(desc_content):
