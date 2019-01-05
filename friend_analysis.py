@@ -1,14 +1,12 @@
 # coding=utf-8
 
 import json
-import codecs
 import re
 import os
 import math
 import codecs
 
 import itchat
-import requests
 import jieba.analyse
 import PIL.Image as Image
 from pyecharts import Bar
@@ -18,18 +16,10 @@ from pyecharts import Pie
 from pyecharts import Map
 from collections import Counter
 
-
 sex_dict = {}
 sex_dict['0'] = "其他"
 sex_dict['1'] = "男"
 sex_dict['2'] = "女"
-
-message_dict = {
-    "二胖": "更多好玩的内容请关注公众号：大数据前沿（id:bigdataqianyan）",
-    "你好": "你好啊，这条消息是自动回复的。",
-    "备忘录": "早上10.30参加产品发布会\n今晚隔壁王总找你开会"
-}
-
 
 # 下载好友头像
 def download_images(frined_list):
@@ -54,11 +44,7 @@ def print_content(msg):
     NickName = msg['User']['NickName']
     user = itchat.search_friends(name=NickName)[0]
     text = msg['Text']
-
-    if text in message_dict.keys():
-        user.send(message_dict[text])
-    else:
-        user.send(u"你好啊%s,我目前还不支持这个功能" % NickName)
+    user.send(u"你好啊%s,我目前还不支持这个功能" % NickName)
 
 # -----------------------------------------------------
 
@@ -73,7 +59,6 @@ def get_pie(item_name, item_name_list, item_num_list):
             legend_pos='left', legend_orient='vertical', label_text_size=20)
 
     out_file_name = './analyse/' + item_name + '.html'
-    # print(out_file_name)
     pie.render(out_file_name)
 
 
@@ -223,8 +208,8 @@ def signature_extraction(friends_info):
         print(i["Signature"])
 
 
-if __name__ == '__main__':
-    itchat.auto_login()
+def start():
+    itchat.auto_login(hotReload=True)
 
     friends = itchat.get_friends(update=True)[0:]  # 获取好友信息
     friends_list = []
@@ -239,7 +224,6 @@ if __name__ == '__main__':
         item['UserName'] = friend['UserName']
 
         friends_list.append(item)
-        print(item)
 
     save_data(friends_list)
     download_images(friends_list)
@@ -294,3 +278,6 @@ if __name__ == '__main__':
 
     # 好友签名分析
     signature_extraction(friends)
+
+if __name__ == "__main__":
+    start()
