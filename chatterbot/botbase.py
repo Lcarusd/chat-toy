@@ -10,22 +10,27 @@ import requests
 import mimetypes
 import json
 import xml.dom.minidom
-import urllib
+# import urllib
+import urllib.parse
 import time
 import re
 import random
 from traceback import format_exc
 from requests.exceptions import ConnectionError, ReadTimeout
-import HTMLParser
+# import HTMLParser
+from html.parser import HTMLParser
+import requests
 
 # new add
-from safesession import SafeSession
-from tools import Tools
+# from safesession import SafeSession
+# from tools import Tools
 
 UNKONWN = 'unkonwn'
 SUCCESS = '200'
 SCANED = '201'
 TIMEOUT = '408'
+
+bot_api = "http://127.0.0.1:8000/get_response"
 
 
 def map_username_batch(user_name):
@@ -47,6 +52,37 @@ def show_image(file_path):
         os.system(command)
     else:
         webbrowser.open(os.path.join(os.getcwd(), 'temp', file_path))
+
+
+class Tools(object):
+
+    @staticmethod
+    def to_unicode(string, encoding='utf-8'):
+        """
+        将字符串转换为Unicode
+        """
+        if isinstance(string, str):
+            return string.decode(encoding)
+        elif isinstance(string, unicode):
+            return string
+        else:
+            raise Exception('Unknown Type')
+
+
+class SafeSession(requests.Session):
+    def request(self, method, url, params=None, data=None, headers=None, cookies=None, files=None, auth=None, timeout=None, allow_redirects=True, proxies=None, hooks=None, stream=None, verify=None, cert=None, json=None):
+        for i in range(3):
+            try:
+                return super(SafeSession, self).request(method, url, params, data, headers, cookies, files, auth, timeout, allow_redirects, proxies, hooks, stream, verify, cert, json)
+            except Exception as e:
+                print (e.message, traceback.format_exc())
+                continue
+
+        # 重试3次以后再加一次，抛出异常
+        try:
+            return super(SafeSession, self).request(method, url, params, data, headers, cookies, files, auth, timeout, allow_redirects, proxies, hooks, stream, verify, cert, json)
+        except Exception as e:
+            raise e
 
 
 class ChatBotBase:
@@ -148,7 +184,7 @@ class ChatBotBase:
         dic_list.append(dic)
 
         while int(dic["Seq"]) != 0:
-            print "[INFO] Geting contacts. Get %s contacts for now" % dic["MemberCount"]
+            print ("[INFO] Geting contacts. Get %s contacts for now" % dic["MemberCount"])
             url = self.base_uri + '/webwxgetcontact?seq=%s&pass_ticket=%s&skey=%s&r=%s' \
                 % (dic["Seq"], self.pass_ticket, self.skey, int(time.time()))
             r = self.session.post(url, data='{}', timeout=180)
@@ -235,7 +271,7 @@ class ChatBotBase:
             self.cursor += self.batch_count
             cur_batch = map(map_username_batch, cur_batch)
             user_info_list += self.batch_get_contact(cur_batch)
-            print "[INFO]批量获取成员信息"
+            print ("[INFO]批量获取成员信息")
 
         self.member_list = user_info_list
         special_users = ['newsapp', 'filehelper', 'weibo', 'qqmail',
@@ -302,8 +338,8 @@ class ChatBotBase:
                 f.write(json.dumps(self.group_members))
             with open(os.path.join(self.temp_pwd, 'account_info.json'), 'w') as f:
                 f.write(json.dumps(self.account_info))
-        print '[INFO] Get %d contacts' % len(self.contact_list)
-        print '[INFO] Start to process messages .'
+        print ('[INFO] Get %d contacts' % len(self.contact_list))
+        print ('[INFO] Start to process messages .')
         return True
 
     def batch_get_contact(self, cur_batch):
@@ -557,7 +593,7 @@ class ChatBotBase:
                 msg_content['data'] = pos
                 msg_content['detail'] = data
                 if self.DEBUG:
-                    print '    %s[Location] %s ' % (msg_prefix, pos)
+                    print ('    %s[Location] %s ' % (msg_prefix, pos))
             else:
                 msg_content['type'] = 0
                 # Group text message
@@ -573,9 +609,9 @@ class ChatBotBase:
                     msg_content['data'] = content
                 if self.DEBUG:
                     try:
-                        print '    %s[Text] %s' % (msg_prefix, msg_content['data'])
+                        print ('    %s[Text] %s' % (msg_prefix, msg_content['data']))
                     except UnicodeEncodeError:
-                        print '    %s[Text] (illegal text).' % msg_prefix
+                        print ('    %s[Text] (illegal text).' % msg_prefix)
         elif mtype == 3:
             msg_content['type'] = 3
             msg_content['data'] = self.get_msg_img_url(msg_id)
@@ -583,7 +619,7 @@ class ChatBotBase:
                 msg_content['data']).content.encode('hex')
             if self.DEBUG:
                 image = self.get_msg_img(msg_id)
-                print '    %s[Image] %s' % (msg_prefix, image)
+                print ('    %s[Image] %s' % (msg_prefix, image))
         elif mtype == 34:
             msg_content['type'] = 4
             msg_content['data'] = self.get_voice_url(msg_id)
@@ -591,12 +627,12 @@ class ChatBotBase:
                 msg_content['data']).content.encode('hex')
             if self.DEBUG:
                 voice = self.get_voice(msg_id)
-                print '    %s[Voice] %s' % (msg_prefix, voice)
+                print ('    %s[Voice] %s' % (msg_prefix, voice))
         elif mtype == 37:
             msg_content['type'] = 37
             msg_content['data'] = msg['RecommendInfo']
             if self.DEBUG:
-                print '    %s[useradd] %s' % (msg_prefix, msg['RecommendInfo']['NickName'])
+                print ('    %s[useradd] %s' % (msg_prefix, msg['RecommendInfo']['NickName']))
         elif mtype == 42:
             msg_content['type'] = 5
             info = msg['RecommendInfo']
@@ -606,18 +642,18 @@ class ChatBotBase:
                                    'city': info['City'],
                                    'gender': ['unknown', 'male', 'female'][info['Sex']]}
             if self.DEBUG:
-                print '    %s[Recommend]' % msg_prefix
-                print '    -----------------------------'
-                print '    | NickName: %s' % info['NickName']
-                print '    | Alias: %s' % info['Alias']
-                print '    | Local: %s %s' % (info['Province'], info['City'])
-                print '    | Gender: %s' % ['unknown', 'male', 'female'][info['Sex']]
-                print '    -----------------------------'
+                print ('    %s[Recommend]' % msg_prefix)
+                print ('    -----------------------------')
+                print ('    | NickName: %s' % info['NickName'])
+                print ('    | Alias: %s' % info['Alias'])
+                print ('    | Local: %s %s' % (info['Province'], info['City']))
+                print ('    | Gender: %s' % ['unknown', 'male', 'female'][info['Sex']])
+                print ('    -----------------------------')
         elif mtype == 47:
             msg_content['type'] = 6
             msg_content['data'] = self.search_content('cdnurl', content)
             if self.DEBUG:
-                print '    %s[Animation] %s' % (msg_prefix, msg_content['data'])
+                print ('    %s[Animation] %s' % (msg_prefix, msg_content['data']))
         elif mtype == 49:
             msg_content['type'] = 7
             if msg['AppMsgType'] == 3:
@@ -637,45 +673,44 @@ class ChatBotBase:
                                    'content': msg.get('Content')
                                    }
             if self.DEBUG:
-                print '    %s[Share] %s' % (msg_prefix, app_msg_type)
-                print '    --------------------------'
-                print '    | title: %s' % msg['FileName']
-                print '    | desc: %s' % self.search_content('des', content, 'xml')
-                print '    | link: %s' % msg['Url']
-                print '    | from: %s' % self.search_content('appname', content, 'xml')
-                print '    | content: %s' % (msg.get('content')[:20] if msg.get('content') else "unknown")
-                print '    --------------------------'
+                print ('    %s[Share] %s' % (msg_prefix, app_msg_type))
+                print ('    | title: %s' % msg['FileName'])
+                print ('    | desc: %s' % self.search_content('des', content, 'xml'))
+                print ('    | link: %s' % msg['Url'])
+                print ('    | from: %s' % self.search_content('appname', content, 'xml'))
+                print ('    | content: %s' % (msg.get('content')[:20] if msg.get('content') else "unknown"))
+                print ('    --------------------------')
 
         elif mtype == 62:
             msg_content['type'] = 8
             msg_content['data'] = content
             if self.DEBUG:
-                print '    %s[Video] Please check on mobiles' % msg_prefix
+                print ('    %s[Video] Please check on mobiles' % msg_prefix)
         elif mtype == 53:
             msg_content['type'] = 9
             msg_content['data'] = content
             if self.DEBUG:
-                print '    %s[Video Call]' % msg_prefix
+                print ('    %s[Video Call]' % msg_prefix)
         elif mtype == 10002:
             msg_content['type'] = 10
             msg_content['data'] = content
             if self.DEBUG:
-                print '    %s[Redraw]' % msg_prefix
+                print ('    %s[Redraw]' % msg_prefix)
         elif mtype == 10000:  # unknown, maybe red packet, or group invite
             msg_content['type'] = 12
             msg_content['data'] = msg['Content']
             if self.DEBUG:
-                print '    [Unknown]'
+                print ('    [Unknown]')
         elif mtype == 43:
             msg_content['type'] = 13
             msg_content['data'] = self.get_video_url(msg_id)
             if self.DEBUG:
-                print '    %s[video] %s' % (msg_prefix, msg_content['data'])
+                print ('    %s[video] %s' % (msg_prefix, msg_content['data']))
         else:
             msg_content['type'] = 99
             msg_content['data'] = content
             if self.DEBUG:
-                print '    %s[Unknown]' % msg_prefix
+                print ('    %s[Unknown]' % msg_prefix)
         return msg_content
 
     def handle_msg(self, r):
@@ -707,7 +742,7 @@ class ChatBotBase:
                         f.write(msg['StatusNotifyUserName'])
                     with open(os.path.join(self.temp_pwd, 'wxid.txt'), 'w') as f:
                         f.write(json.dumps(self.wxid_list))
-                    print "[INFO] Contact list is too big. Now start to fetch member list ."
+                    print ("[INFO] Contact list is too big. Now start to fetch member list .")
                     # self.get_big_contact()
 
             elif msg['MsgType'] == 37:  # friend request
@@ -751,7 +786,7 @@ class ChatBotBase:
             user['name'] = HTMLParser.HTMLParser().unescape(user['name'])
 
             if self.DEBUG and msg_type_id != 0:
-                print u'[MSG] %s:' % user['name']
+                print (u'[MSG] %s:' % user['name'])
             content = self.extract_msg_content(msg_type_id, msg)
             message = {'msg_type_id': msg_type_id,
                        'msg_id': msg['MsgId'],
@@ -805,17 +840,17 @@ class ChatBotBase:
                     elif selector == '0':  # 无事件
                         pass
                     else:
-                        print '[DEBUG] sync_check:', retcode, selector
+                        print ('[DEBUG] sync_check:', retcode, selector)
                         r = self.sync()
                         if r is not None:
                             self.handle_msg(r)
                 else:
-                    print '[DEBUG] sync_check:', retcode, selector
+                    print ('[DEBUG] sync_check:', retcode, selector)
                     time.sleep(10)
                 self.schedule()
             except:
-                print '[ERROR] Except in proc_msg'
-                print format_exc()
+                print ('[ERROR] Except in proc_msg')
+                print (format_exc())
             check_time = time.time() - check_time
             if check_time < 0.8:
                 time.sleep(1 - check_time)
@@ -894,7 +929,7 @@ class ChatBotBase:
             return False
         # 获取群成员数量并判断邀请方式
         group_num = len(self.group_members[gid])
-        print '[DEBUG] group_name:%s group_num:%s' % (group_name, group_num)
+        print ('[DEBUG] group_name:%s group_num:%s' % (group_name, group_num))
         # 通过群id判断uid是否在群中
         for user in self.group_members[gid]:
             if user['UserName'] == uid:
@@ -1027,7 +1062,7 @@ class ChatBotBase:
 
     def upload_media(self, fpath, is_img=False):
         if not os.path.exists(fpath):
-            print '[ERROR] File not exists.'
+            print ('[ERROR] File not exists.')
             return None
         url_1 = 'https://file.'+self.base_host + \
             '/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
@@ -1061,11 +1096,11 @@ class ChatBotBase:
                 # 当file返回值不为0时则为上传失败，尝试第二服务器上传
                 r = self.session.post(url_2, files=files)
             if json.loads(r.text)['BaseResponse']['Ret'] != 0:
-                print '[ERROR] Upload media failure.'
+                print ('[ERROR] Upload media failure.')
                 return None
             mid = json.loads(r.text)['MediaId']
             return mid
-        except Exception, e:
+        except Exception as e:
             return None
 
     def send_file_msg_by_uid(self, fpath, uid):
@@ -1091,7 +1126,7 @@ class ChatBotBase:
                 return True
             else:
                 return False
-        except Exception, e:
+        except Exception as e:
             return False
 
     def send_img_msg_by_uid(self, fpath, uid):
@@ -1119,7 +1154,7 @@ class ChatBotBase:
                 return True
             else:
                 return False
-        except Exception, e:
+        except Exception as e:
             return False
 
     def get_user_id(self, name):
@@ -1151,7 +1186,7 @@ class ChatBotBase:
                     result = True
                     for line in f.readlines():
                         line = line.replace('\n', '')
-                        print '-> ' + name + ': ' + line
+                        print ('-> ' + name + ': ' + line)
                         if self.send_msg_by_uid(line, uid):
                             pass
                         else:
@@ -1166,7 +1201,7 @@ class ChatBotBase:
                     return False
         else:
             if self.DEBUG:
-                print '[ERROR] This user does not exist .'
+                print ('[ERROR] This user does not exist .')
             return True
 
     @staticmethod
@@ -1187,35 +1222,35 @@ class ChatBotBase:
             self.get_uuid()
             # 将生成的qr图片存在临时路径下
             self.gen_qr_code(os.path.join(self.temp_pwd, 'wxqr.png'))
-            print '[INFO] Please use WeChat to scan the QR code .'
+            print ('[INFO] Please use WeChat to scan the QR code .')
 
             result = self.wait4login()
             if result != SUCCESS:
-                print '[ERROR] Web WeChat login failed. failed code=%s' % (result,)
+                print ('[ERROR] Web WeChat login failed. failed code=%s' % (result,))
                 self.status = 'loginout'
                 return
 
             if self.login():
-                print '[INFO] Web WeChat login succeed .'
+                print ('[INFO] Web WeChat login succeed .')
             else:
-                print '[ERROR] Web WeChat login failed .'
+                print ('[ERROR] Web WeChat login failed .')
                 self.status = 'loginout'
                 return
 
             if self.init():
-                print '[INFO] Web WeChat init succeed .'
+                print ('[INFO] Web WeChat init succeed .')
             else:
-                print '[INFO] Web WeChat init failed'
+                print ('[INFO] Web WeChat init failed')
                 self.status = 'loginout'
                 return
             self.status_notify()
             if self.get_contact():
-                print '[INFO] Get %d contacts' % len(self.contact_list)
-                print '[INFO] Start to process messages .'
+                print ('[INFO] Get %d contacts' % len(self.contact_list))
+                print ('[INFO] Start to process messages .')
             self.proc_msg()
             self.status = 'loginout'
-        except Exception, e:
-            print '[ERROR] Web WeChat run failed --> %s' % (e)
+        except Exception as e:
+            print ('[ERROR] Web WeChat run failed --> %s' % (e))
             self.status = 'loginout'
 
     def get_uuid(self):
@@ -1247,7 +1282,7 @@ class ChatBotBase:
             # img = Image.open(qr_file_path)
             # img.show()
         elif self.conf['qr'] == 'tty':
-            print(qr.terminal(quiet_zone=1))
+            print (qr.terminal(quiet_zone=1))
 
     def do_request(self, url):
         r = self.session.get(url)
@@ -1279,7 +1314,7 @@ class ChatBotBase:
             url = LOGIN_TEMPLATE % (tip, self.uuid, int(time.time()))
             code, data = self.do_request(url)
             if code == SCANED:
-                print '[INFO] Please confirm to login .'
+                print ('[INFO] Please confirm to login .')
                 tip = 0
             elif code == SUCCESS:  # 确认登录成功
                 param = re.search(r'window.redirect_uri="(\S+?)";', data)
@@ -1290,13 +1325,13 @@ class ChatBotBase:
                 self.base_host = temp_host[:temp_host.find("/")]
                 return code
             elif code == TIMEOUT:
-                print '[ERROR] WeChat login timeout. retry in %s secs later...' % (try_later_secs,)
+                print ('[ERROR] WeChat login timeout. retry in %s secs later...' % (try_later_secs,))
 
                 tip = 1  # 重置
                 retry_time -= 1
                 time.sleep(try_later_secs)
             else:
-                print('[ERROR] WeChat login exception return_code=%s. retry in %s secs later...' %
+                print ('[ERROR] WeChat login exception return_code=%s. retry in %s secs later...' %
                       (code, try_later_secs))
                 tip = 1
                 retry_time -= 1
@@ -1306,7 +1341,7 @@ class ChatBotBase:
 
     def login(self):
         if len(self.redirect_uri) < 4:
-            print '[ERROR] Login failed due to network problem, please try again.'
+            print ('[ERROR] Login failed due to network problem, please try again.')
             return False
         r = self.session.get(self.redirect_uri)
         r.encoding = 'utf-8'
@@ -1387,8 +1422,8 @@ class ChatBotBase:
             'synckey': self.sync_key_str,
             '_': int(time.time()),
         }
-        url = 'https://' + self.sync_host + \
-            '/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(params)
+        url = 'https://' + self.sync_host + '/cgi-bin/mmwebwx-bin/synccheck?' + \
+              urllib.parse.urlencode({'spam': 1, 'eggs': 2, 'bacon': 0})
         try:
             r = self.session.get(url, timeout=60)
             r.encoding = 'utf-8'
@@ -1528,3 +1563,24 @@ class ChatBotBase:
             return dic['BaseResponse']['ErrMsg']
         except:
             return None
+
+
+class ChatBot(ChatBotBase):
+    def handle_msg_all(self, msg):
+        if msg['msg_type_id'] == 4 and msg['content']['type'] == 0:
+            user_input = msg["content"]["data"]
+            payload = {"user_input": user_input}
+            response = requests.get(bot_api, params=payload).json()["response"]
+            self.send_msg_by_uid(response, msg['user']['id'])
+
+
+def main():
+    bot = ChatBot()
+    bot.DEBUG = True
+    bot.conf['qr'] = 'png'
+    bot.run()
+
+
+if __name__ == '__main__':
+    main()
+
